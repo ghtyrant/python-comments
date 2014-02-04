@@ -42,7 +42,7 @@ class Comment(Base):
     username = Column(String(100))
     date_posted = Column(DateTime(), default=datetime.datetime.now)
     text = Column(Text())
-    article_id = Column(String(10))
+    article_id = Column(String(200))
 
     def __repr__(self):
         return "<Comment(user=%s, text=%s)>" % (self.username, self.text)
