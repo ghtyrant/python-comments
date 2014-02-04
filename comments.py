@@ -76,7 +76,7 @@ def get_comments(hash_id, db):
 
 def dt_converter(obj):
     if hasattr(obj, 'isoformat'):
-        return obj.isoformat()
+        return obj.strftime('%d.%m.%Y %H:%M:%S')
     else:
         return None
 
