@@ -53,8 +53,6 @@ def add_comment(db):
     text = request.forms.get('text')
     article_id = request.forms.get('id')
 
-    print("Adding comment for hash_id '%s'" % (article_id))
-
     c = Comment(username=bleach.clean(username), text=bleach.clean(text), article_id=article_id)
     db.add(c)
     return "{ success: true }"
@@ -63,16 +61,25 @@ def add_comment(db):
 def get_comments(hash_id, db):
     # only accept XHR reques
     if not config.DEBUG and not request.is_xhr:
-        print("We only handle XHR requests")
         return
 
-    print("Fetching comments for '%s'" % (hash_id))
     comments = []
     for comment in db.query(Comment).filter_by(article_id = hash_id).order_by(desc(Comment.date_posted)):
         comments.append({ 'username': comment.username, 'text': comment.text, 'date_posted': comment.date_posted })
 
     response.headers['Content-Type'] = 'application/json'
     return(json.dumps({ 'comments': comments }, default=dt_converter))
+
+@app.route('/count/<hash_id>')
+def count_comments(hash_id, db):
+    # only accept XHR reques
+    if not config.DEBUG and not request.is_xhr:
+        return
+
+    comment_count = db.query(Comment).filter_by(article_id = hash_id).count()
+
+    response.headers['Content-Type'] = 'application/json'
+    return(json.dumps({ 'count': comment_count }))
 
 
 def dt_converter(obj):
