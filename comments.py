@@ -22,7 +22,7 @@ import bleach
 import config
 
 Base = declarative_base()
-engine = create_engine(config.DATABASE_URI, echo=True)
+engine = create_engine(config.DATABASE_URI, echo=DEBUG)
 
 app = Bottle()
 plugin = sqlalchemy.Plugin(
