@@ -14,8 +14,9 @@ sys.path.append(os.getcwd())
 
 from bottle import Bottle, route, run, template, request, response, default_app
 from bottle.ext import sqlalchemy
-from sqlalchemy import create_engine, Column, Integer, Sequence, String, DateTime, Text
+from sqlalchemy import create_engine, Column, Integer, Sequence, String, DateTime, Text, desc
 from sqlalchemy.ext.declarative import declarative_base
+import json
 
 import config
 
@@ -65,8 +66,12 @@ def get_comments(hash_id, db):
         return
 
     print("Fetching comments for '%s'" % (hash_id))
-    #response.headers['Content-Type'] = 'application/json'
-    return("{ hash_id: 'ladida' }")
+    comments = []
+    for comment in db.query(Comment).filter_by(article_id = hash_id).order_by(desc(Comment.date_posted)):
+        comments.append({ 'username': comment.username, 'text': comment.text, 'date_posted': comment.date_posted })
+
+    response.headers['Content-Type'] = 'application/json'
+    return(json.dumps({ 'comments': comments }))
 
 if __name__ == "__main__":
     app.run(host='localhost', port='8080')
