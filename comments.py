@@ -17,6 +17,7 @@ from bottle.ext import sqlalchemy
 from sqlalchemy import create_engine, Column, Integer, Sequence, String, DateTime, Text, desc
 from sqlalchemy.ext.declarative import declarative_base
 import json
+import bleach
 
 import config
 
@@ -54,7 +55,7 @@ def add_comment(db):
 
     print("Adding comment for hash_id '%s'" % (article_id))
 
-    c = Comment(username=username, text=text, article_id=article_id)
+    c = Comment(username=bleach.clean(username), text=bleach.clean(text), article_id=article_id)
     db.add(c)
     return "{ success: true }"
 
