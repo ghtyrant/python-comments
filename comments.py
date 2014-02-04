@@ -71,7 +71,14 @@ def get_comments(hash_id, db):
         comments.append({ 'username': comment.username, 'text': comment.text, 'date_posted': comment.date_posted })
 
     response.headers['Content-Type'] = 'application/json'
-    return(json.dumps({ 'comments': comments }))
+    return(json.dumps({ 'comments': comments }, default=dt_converter))
+
+
+def dt_converter(obj):
+    if hasattr(obj, 'isoformat'):
+        return obj.isoformat()
+    else:
+        return None
 
 if __name__ == "__main__":
     app.run(host='localhost', port='8080')
