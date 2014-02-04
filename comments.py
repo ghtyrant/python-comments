@@ -1,25 +1,28 @@
 #!/usr/bin/env python2.7
+import sys, os
+import datetime
 
 # Make this run with Apache and mod_wsgi
 if __name__ != "__main__":
-    import os
     import site
 
     os.chdir(os.path.dirname(__file__))
     site.addsitedir(os.path.join(os.getcwd(), ".venv/lib/python2.7/site-packages"))
 
+sys.path.append(os.getcwd())
 
-from bottle import route, run, template, request, response, default_app
+
+from bottle import Bottle, route, run, template, request, response, default_app
 from bottle.ext import sqlalchemy
-from sqlalchemy import create_engine, Column, Integer, Sequence, String
+from sqlalchemy import create_engine, Column, Integer, Sequence, String, DateTime, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 import config
 
 Base = declarative_base()
-engine = create_engine(DATABASE_URI)
+engine = create_engine(config.DATABASE_URI, echo=True)
 
-app = bottle.Bottle()
+app = Bottle()
 plugin = sqlalchemy.Plugin(
             engine,
             Base.metadata,
@@ -31,22 +34,41 @@ plugin = sqlalchemy.Plugin(
 
 app.install(plugin)
 
+class Comment(Base):
+    __tablename__ = 'comment'
+    id = Column(Integer, Sequence('id_seq'), primary_key = True)
+    username = Column(String(100))
+    date_posted = Column(DateTime(), default=datetime.datetime.now)
+    text = Column(Text())
+    article_id = Column(String(10))
+
+    def __repr__(self):
+        return "<Comment(user=%s, text=%s)>" % (self.username, self.text)
+
 @app.post('/add')
 def add_comment(db):
-    data = request.query
-    print("Adding comment for hash_id '%s'" % (data.hash_id))
+    username = request.forms.get('username')
+    text = request.forms.get('text')
+    article_id = request.forms.get('id')
 
-@app.get('/get/<hash_id>')
+    print("Adding comment for hash_id '%s'" % (article_id))
+
+    c = Comment(username=username, text=text, article_id=article_id)
+    db.add(c)
+    return "{ success: true }"
+
+@app.route('/get/<hash_id>')
 def get_comments(hash_id, db):
-    # only accept XHR request
-    if not request.is_xhr:
+    # only accept XHR reques
+    if not config.DEBUG and not request.is_xhr:
+        print("We only handle XHR requests")
         return
 
     print("Fetching comments for '%s'" % (hash_id))
-    response.headers['Content-Type'] = 'application/json'
+    #response.headers['Content-Type'] = 'application/json'
     return("{ hash_id: 'ladida' }")
 
 if __name__ == "__main__":
-    run(host='localhost', port='8080')
+    app.run(host='localhost', port='8080')
 else:
     application = app
