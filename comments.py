@@ -52,6 +52,10 @@ def add_comment(db):
     username = request.forms.get('username')
     text = request.forms.get('text')
     article_id = request.forms.get('id')
+    human = request.forms.get('human')
+
+    if human != "yes":
+        return "{ success: false }"
 
     c = Comment(username=bleach.clean(username), text=bleach.clean(text), article_id=article_id)
     db.add(c)
