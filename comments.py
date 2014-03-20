@@ -119,6 +119,14 @@ def create_captcha(db):
     import random
     import string
 
+    dt_thresh = datetime.datetime.now() - datetime.timedelta(minutes=30)
+    old_captchas = db.query(Captcha).filter(Captcha.date_created <= dt_thresh).all()
+
+    for c in old_captchas:
+        os.remove("captcha/captcha_%d.jpg" % (c.id))
+
+    db.query(Captcha).filter(Captcha.date_created <= dt_thresh).delete()
+
     value = random.sample(string.uppercase + string.digits, 5)
     c = Captcha(value=''.join(value))
     db.add(c)
