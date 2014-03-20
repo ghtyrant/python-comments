@@ -123,20 +123,23 @@ def create_captcha(db):
     c = Captcha(value=''.join(value))
     db.add(c)
     db.flush()
-    print(c)
+
     img = captcha(drawings=[
-                    background(),
+                    background(color="#FFFFFF"),
                     text(fonts=[
                             "/usr/share/fonts/truetype/ttf-dejavu/DejaVuSerif.ttf"
                          ],
+                         font_sizes=[60],
+                         squeeze_factor=1.0,
+                         color="#50504f",
                          drawings=[
                             warp(),
-                            rotate(),
-                            offset()
+                            #rotate(),
+                            #offset()
                     ]),
-                    curve(),
-                    noise(),
-                    smooth()
+                    curve(color='#40403f'),
+                    #noise(),
+                    #smooth()
                     ])
 
     finished_img = img(value)
