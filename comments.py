@@ -12,12 +12,24 @@ if __name__ != "__main__":
 sys.path.append(os.getcwd())
 
 
-from bottle import Bottle, route, run, template, request, response, default_app
+from bottle import Bottle, HTTPResponse, route, run, template, request, response, default_app
 from bottle.ext import sqlalchemy
 from sqlalchemy import create_engine, Column, Integer, Sequence, String, DateTime, Text, desc
 from sqlalchemy.ext.declarative import declarative_base
 import json
 import bleach
+
+from wheezy.captcha.image import captcha
+
+from wheezy.captcha.image import background
+from wheezy.captcha.image import curve
+from wheezy.captcha.image import noise
+from wheezy.captcha.image import smooth
+from wheezy.captcha.image import text
+
+from wheezy.captcha.image import offset
+from wheezy.captcha.image import rotate
+from wheezy.captcha.image import warp
 
 import config
 
@@ -47,19 +59,36 @@ class Comment(Base):
     def __repr__(self):
         return "<Comment(user=%s, text=%s)>" % (self.username, self.text)
 
+class Captcha(Base):
+    __tablename__ = 'captcha'
+    id = Column(Integer, Sequence('id_seq'), primary_key = True)
+    value = Column(String(8))
+    date_created = Column(DateTime(), default=datetime.datetime.now)
+
+    def __repr__(self):
+      return "<Captcha(id=%d, value=%s)>" % (self.id, self.value)
+
 @app.post('/add')
 def add_comment(db):
     username = request.forms.get('username')
     text = request.forms.get('text')
     article_id = request.forms.get('id')
-    human = request.forms.get('human')
+    captcha_value = request.forms.get('captcha')
+    captcha_id = request.forms.get('captcha_id')
+    
+    captcha = db.query(Captcha).get(captcha_id)
+    captcha_ok = captcha_value.lower().strip() == captcha.value.lower()
+    
+    os.remove("captcha/captcha_%d.jpg" % (captcha.id))
+    db.delete(captcha)
 
-    if human != "yes":
-        return "{ success: false }"
-
+    if not captcha_ok:
+        return json.dumps({"success": False})
+    
     c = Comment(username=bleach.clean(username), text=bleach.clean(text), article_id=article_id)
     db.add(c)
-    return "{ success: true }"
+
+    return json.dumps({"success": True})
 
 @app.route('/get/<hash_id>')
 def get_comments(hash_id, db):
@@ -85,6 +114,48 @@ def count_comments(hash_id, db):
     response.headers['Content-Type'] = 'application/json'
     return(json.dumps({ 'count': comment_count }))
 
+@app.route('/captcha')
+def create_captcha(db):
+    import random
+    import string
+
+    value = random.sample(string.uppercase + string.digits, 5)
+    c = Captcha(value=''.join(value))
+    db.add(c)
+    db.flush()
+    print(c)
+    img = captcha(drawings=[
+                    background(),
+                    text(fonts=[
+                            "/usr/share/fonts/truetype/ttf-dejavu/DejaVuSerif.ttf"
+                         ],
+                         drawings=[
+                            warp(),
+                            rotate(),
+                            offset()
+                    ]),
+                    curve(),
+                    noise(),
+                    smooth()
+                    ])
+
+    finished_img = img(value)
+    finished_img.save('captcha/captcha_%d.jpg' % (c.id), 'JPEG', quality=75)
+
+    return json.dumps({ "id": c.id })
+
+@app.route('/get_captcha/<id>')
+def get_captcha(id, db):
+    captcha = db.query(Captcha).get(id)
+    if captcha.value:
+        headers = {
+            'Content-Type': 'image/jpeg'
+        }
+
+        with open("captcha/captcha_%d.jpg" % (captcha.id)) as stream:
+            body = stream.read()
+
+        return HTTPResponse(body, **headers)
 
 def dt_converter(obj):
     if hasattr(obj, 'isoformat'):
