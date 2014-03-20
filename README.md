@@ -2,6 +2,8 @@ python-comments
 ===============
 
 Small replacement for e.g. Disqus for implementing comment systems on static websites.
+It also offers standard captchas. To generate one, start a GET request to /captcha, which will return an ID. To display it, use `http://yourserver/get_captcha/<ID>`.
+When POSTing the comment, include the user's input as a field called "captcha" and the ID in a hidden field called "captcha_id".
 
 For a demo, visit http://skyr.at.
 
@@ -14,6 +16,9 @@ The following example shows how it can be used:
 <div id="comments-display"></div>
 <form id="comment-form" method="POST" action="#">
   <input type="text" name="username"/>
+  <img id="captcha_img" src=""><br/>
+  <input type="text" name="captcha"/>
+  <input type="hidden" id="captcha_id" name="captcha_id"/>
   <textarea name="text"></textarea>
   <input type="button" id="submit" value="Post"/>
   <input type="hidden" name="id" value="<YOUR ARTICLE ID>"/>
@@ -37,12 +42,29 @@ The following example shows how it can be used:
         'json');
   }
 
+  function load_captcha()
+  {
+    $.get("http://skyr.at/comments/captcha", function(data) {
+      $('#captcha_img').attr('src', "http://skyr.at/comments/get_captcha/" + data.id);
+      $('#captcha_id').attr('value', data.id);
+    },
+    'json');
+  }
+
+
   $(document).ready(function() {
       load_comments("<YOUR ARTICLE ID>");
+      load_captcha();
       $('#submit').click( function() {
         $.post("http://skyr.at/comments/add", $('form#comment-form').serialize(), function(data) {
-            load_comments("<YOUR ARTICLE ID>");
-          });
+            if (!data.success) {
+              alert("Wrong captcha!");
+              load_captcha();
+            }
+            else
+              load_comments("<YOUR ARTICLE ID>");
+          },
+          'json');
       });
   });
 </script>
