@@ -85,7 +85,11 @@ def add_comment(db):
     captcha = db.query(Captcha).get(captcha_id)
     captcha_ok = captcha_value.lower().strip() == captcha.value.lower()
 
-    os.remove("captcha/captcha_%s.jpg" % (captcha.id))
+    try:
+        os.remove("captcha/captcha_%s.jpg" % (captcha.id))
+    except OSError as e:
+        print("Error deleting captcha image 'captcha_%s.jpg': %s" % (captcha.id, e))
+
     db.delete(captcha)
 
     if not captcha_ok:
@@ -143,7 +147,10 @@ def create_captcha(db):
     old_captchas = db.query(Captcha).filter(Captcha.date_created <= dt_thresh).all()
 
     for c in old_captchas:
-        os.remove("captcha/captcha_%s.jpg" % (c.id))
+        try:
+            os.remove("captcha/captcha_%s.jpg" % (c.id))
+        except OSError as e:
+            print("Error deleting captcha image 'captcha_%s.jpg': %s" % (c.id, e))
 
     db.query(Captcha).filter(Captcha.date_created <= dt_thresh).delete()
 
