@@ -48,6 +48,7 @@ app.install(plugin)
 class Comment(Base):
     __tablename__ = 'comment'
     id = Column(Integer, Sequence('id_seq'), primary_key = True)
+    hash_id = Column(String(8))
     username = Column(String(100))
     date_posted = Column(DateTime(), default=datetime.datetime.now)
     text = Column(Text())
@@ -95,8 +96,14 @@ def add_comment(db):
     if not captcha_ok:
         return {"success": False, "missing": "captcha"}
 
-    c = Comment(username=bleach.clean(username), text=bleach.clean(text), article_id=article_id)
+    c = Comment(username=bleach.clean(username),
+                text=bleach.clean(text),
+                article_id=article_id)
     db.add(c)
+    db.flush()
+
+    c.hash_id = hashlib.sha1("%d" % (c.id)).hexdigest()[:8]
+    db.commit()
 
     return {"success": True}
 
@@ -105,7 +112,7 @@ def add_comment(db):
 def get_comments(hash_id, db):
     comments = []
     for comment in db.query(Comment).filter_by(article_id = hash_id).order_by(desc(Comment.date_posted)):
-        comments.append({ 'username': comment.username, 'text': comment.text, 'date_posted': comment.date_posted })
+        comments.append({ 'hash_id': comment.hash_id, 'username': comment.username, 'text': comment.text, 'date_posted': comment.date_posted })
 
     response.headers['Content-Type'] = 'application/json'
     return(json.dumps({ 'comments': comments }, default=dt_converter))
