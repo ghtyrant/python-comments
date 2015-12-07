@@ -103,10 +103,6 @@ def add_comment(db):
 
 @app.route('/get/<hash_id>')
 def get_comments(hash_id, db):
-    # only accept XHR reques
-    if not config.DEBUG and not request.is_xhr:
-        return
-
     comments = []
     for comment in db.query(Comment).filter_by(article_id = hash_id).order_by(desc(Comment.date_posted)):
         comments.append({ 'username': comment.username, 'text': comment.text, 'date_posted': comment.date_posted })
@@ -117,10 +113,6 @@ def get_comments(hash_id, db):
 
 @app.post('/count_batch/')
 def count_comments_batch(db):
-    # only accept XHR reques
-    if not config.DEBUG and not request.is_xhr:
-        return
-
     ids = json.load(request.body)
     comment_count = db.query(Comment.article_id, func.count(Comment.article_id)).filter(Comment.article_id.in_(ids)).group_by(Comment.article_id).all()
 
@@ -129,10 +121,6 @@ def count_comments_batch(db):
 
 @app.route('/count/<hash_id>')
 def count_comments(hash_id, db):
-    # only accept XHR reques
-    if not config.DEBUG and not request.is_xhr:
-        return
-
     comment_count = db.query(Comment).filter_by(article_id = hash_id).count()
 
     response.headers['Content-Type'] = 'application/json'
